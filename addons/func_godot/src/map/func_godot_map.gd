@@ -49,6 +49,10 @@ var _map_file_internal: String = ""
 ## Measured in Godot units, not Quake units.
 @export_range(256.0, 2048.0, 128.0) var hyperplane_size: float = 512.0
 
+## When provided, when building a map, all geometry will be inserted and baked into the NavigationMesh
+## Pair this with a [NavigationRegion3D] to use with agents
+@export var navigation_mesh: NavigationMesh
+
 ## Map build failure handler. Displays error message and emits [signal build_failed] signal.
 func fail_build(reason: String, notify: bool = false) -> void:
 	push_error(_SIGNATURE, " ", reason)
@@ -137,11 +141,15 @@ func build() -> void:
 		return
 
 	# Assemble entities and groups
-	var assembler := FuncGodotEntityAssembler.new(map_settings)
+	var assembler := FuncGodotEntityAssembler.new(map_settings, build_flags)
 	if build_flags & BuildFlags.SHOW_PROFILE_INFO:
 		print("\nENTITY ASSEMBLER")
 		assembler.declare_step.connect(FuncGodotUtil.print_profile_info.bind(assembler._SIGNATURE))
+
 	assembler.build(self, entities, groups)
+		
+	if navigation_mesh:
+		NavigationServer3D.bake_from_source_geometry_data(navigation_mesh, assembler.navigation_source_geometry)
 	
 	time_elapsed = Time.get_ticks_msec() - time_elapsed
 

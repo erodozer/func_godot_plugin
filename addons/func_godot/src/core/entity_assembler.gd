@@ -1,3 +1,4 @@
+@tool
 @icon("res://addons/func_godot/icons/icon_godot_ranger.svg")
 class_name FuncGodotEntityAssembler extends RefCounted
 ## Entity assembly class that is instantiated by a [FuncGodotMap] node.
@@ -13,14 +14,16 @@ const _EntityData	:= FuncGodotData.EntityData
 var map_settings: FuncGodotMapSettings = null
 ## [enum FuncGodotMap.BuildFlags] that may affect the build process provided by the [FuncGodotMap].
 var build_flags: int = 0
+var navigation_source_geometry := NavigationMeshSourceGeometryData3D.new()
 
 # Signals
 ## Emitted when a step in the entity assembly process is completed. 
 ## It is connected to [method FuncGodotUtil.print_profile_info] method if [member FuncGodotMap.build_flags] SHOW_PROFILE_INFO flag is set.
 signal declare_step(step: String)
 
-func _init(settings: FuncGodotMapSettings) -> void:
+func _init(settings: FuncGodotMapSettings, flags: int) -> void:
 	map_settings = settings
+	build_flags = flags
 
 ## Attempts to retrieve a [Script] via class name, to allow for [GDScript] class instantiation.
 static func get_script_by_class_name(name_of_class: String) -> Script:
@@ -81,6 +84,7 @@ func generate_solid_entity_node(node: Node, node_name: String, data: _EntityData
 		mesh_instance.layers = definition.render_layers
 		node.add_child(mesh_instance)
 		data.mesh_instance = mesh_instance
+		navigation_source_geometry.add_mesh(data.mesh, Transform3D.IDENTITY)
 		
 		# Occluder generation
 		if definition.build_occlusion and data.mesh:
@@ -328,9 +332,8 @@ func generate_entity_node(entity_data: _EntityData, entity_index: int) -> Node:
 
 ## Main entity assembly process called by [FuncGodotMap]. Generates and sorts group nodes in the [SceneTree] first, 
 ## then generates and assembles [Node]s based upon the provided [FuncGodotData.EntityData] and adds them to the [SceneTree].
-func build(map_node: FuncGodotMap, entities: Array[_EntityData], groups: Array[_GroupData]) -> void:
-	var scene_root := map_node.get_tree().edited_scene_root if map_node.is_inside_tree() else map_node
-	build_flags = map_node.build_flags
+func build(map_node: Node3D, entities: Array[_EntityData], groups: Array[_GroupData]) -> void:
+	var scene_root := map_node.owner if map_node.owner else map_node
 	
 	if map_settings.use_groups_hierarchy:
 		declare_step.emit("Generating %s groups" % groups.size())
