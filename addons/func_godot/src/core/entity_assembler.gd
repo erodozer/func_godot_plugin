@@ -278,7 +278,7 @@ func apply_entity_properties(node: Node, data: _EntityData) -> void:
 	if "func_godot_properties" in node:
 		node.func_godot_properties = properties
 	
-	if data.definition.properties_as_meta:
+	if data.definition.add_properties_to_meta:
 		node.set_meta("func_godot_properties", properties)
 
 	if node.has_method("_func_godot_apply_properties"):
